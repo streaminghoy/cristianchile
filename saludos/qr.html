@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Solo QR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background: transparent; overflow: hidden; font-family: Arial, sans-serif; }
+        #qr-container { display: inline-block; background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 3px solid #333; }
+        #qr-text { text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 18px; color: black; }
+    </style>
+</head>
+<body>
+    <div id="qr-container">
+        <div id="qr-text">¡Enviá tu mensaje!</div>
+        <div id="qrcode"></div>
+    </div>
+    <script>
+        // Poné la misma URL exacta que pusiste antes
+        const submitUrl = 'https://streaminghoy.github.io/netzona/saludos/submit.html';
+        
+        new QRCode(document.getElementById("qrcode"), { text: submitUrl, width: 200, height: 200 });
+    </script>
+</body>
+</html>
