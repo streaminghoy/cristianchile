@@ -1,1 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Ticker OBS - Movimiento Fluido Pro</title>
+    <style>
+        body { margin: 0; padding: 0; background: transparent; font-family: Arial, sans-serif; overflow: hidden; }
+        #ticker-container { position: absolute; bottom: 0; width: 100%; height: 50px; background-color: #ff0000; color: white; display: flex; align-items: center; font-size: 24px; font-weight: bold; overflow: hidden; }
+        
+        /* Sacamos la animación CSS y preparamos el texto para moverlo con JS */
+        #ticker-content { position: absolute; white-space: nowrap; left: 0; will-change: transform; }
+    </style>
+</head>
+<body>
+    <div id="ticker-container">
+        <div id="ticker-content">Esperando mensajes...</div>
+    </div>
 
+    <script>
+        let ultimoTexto = "";
+        
+        // ACELERADOR: Ajustalo a tu gusto (150 es una velocidad súper cómoda)
+        const pxPorSegundo = 100; 
+        
+        // Variables para el motor de movimiento
+        const ticker = document.getElementById('ticker-content');
+        let posicionX = window.innerWidth; // Arranca escondido a la derecha
+        let ultimoTiempo = performance.now();
+
+        // El motor que mueve el texto píxel por píxel (Como vMix/OBS nativo)
+        function moverTicker(tiempoActual) {
+            // Calculamos el tiempo para que la velocidad sea perfecta y fluida
+            let delta = (tiempoActual - ultimoTiempo) / 1000;
+            ultimoTiempo = tiempoActual;
+
+            posicionX -= pxPorSegundo * delta;
+            
+            // Si el texto ya cruzó toda la pantalla y salió por la izquierda, lo volvemos a meter por la derecha
+            if (posicionX < -ticker.offsetWidth) {
+                posicionX = window.innerWidth;
+            }
+
+            // Aplicamos el movimiento
+            ticker.style.transform = `translateX(${posicionX}px)`;
+            
+            // Le decimos al navegador que lo vuelva a mover en el próximo cuadro (60fps)
+            requestAnimationFrame(moverTicker);
+        }
+
+        // Arrancamos el motor
+        requestAnimationFrame(moverTicker);
+
+        // La función que busca los mensajes nuevos
+        function updateTicker() {
+            fetch('api.php?action=get&nocache=' + new Date().getTime())
+                .then(r => r.json())
+                .then(data => {
+                    if(data && data.settings) document.getElementById('ticker-container').style.backgroundColor = data.settings.color;
+                    
+                    let nuevosMensajes = "Esperando mensajes...";
+                    if (data && data.messages && data.messages.length > 0) {
+                        nuevosMensajes = data.messages.map(m => m.text).join(' &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; ');
+                    }
+
+                    // Si hay un cambio en los mensajes, actualizamos el texto, pero NO tocamos la posición
+                    if (nuevosMensajes !== ultimoTexto) {
+                        ticker.innerHTML = nuevosMensajes;
+                        ultimoTexto = nuevosMensajes;
+                    }
+                }).catch(err => console.log("Buscando datos..."));
+        }
+
+        setInterval(updateTicker, 3000);
+        updateTicker();
+    </script>
+</body>
+</html>
