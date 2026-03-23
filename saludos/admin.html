@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Control - Ticker</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #222; color: white; max-width: 900px; margin: auto; }
+        .card { background: #333; padding: 20px; margin-bottom: 20px; border-radius: 8px; }
+        .msg-item { display: flex; justify-content: space-between; align-items: center; background: #444; padding: 12px; margin-bottom: 8px; border-radius: 4px; border-left: 4px solid #28a745; }
+        button { cursor: pointer; padding: 8px 15px; border: none; border-radius: 4px; font-weight: bold; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: black; padding: 10px 20px; }
+        .btn-success { background: #28a745; color: white; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <h1>Control del Ticker</h1>
+
+    <div class="card">
+        <h3>🎨 Ajustes Visuales</h3>
+        <label>Color del Ticker: </label>
+        <input type="color" id="colorPicker" style="width: 50px; height: 50px; cursor: pointer;">
+        <br><br>
+        <label>
+            <input type="checkbox" id="autoDelete"> Borrar mensajes automáticamente (24hs)
+        </label>
+        <br><br>
+        <button class="btn-success" onclick="saveSettings()">Guardar Ajustes</button>
+    </div>
+
+    <div class="card">
+        <h3>💬 Mensajes Activos <button class="btn-warning" style="float: right;" onclick="deleteAll()">Borrar TODOS</button></h3>
+        <div id="messagesList"></div>
+    </div>
+
+    <script>
+        function loadAdmin() {
+            fetch('api.php?action=get&nocache=' + new Date().getTime())
+                .then(res => res.json())
+                .then(data => {
+                    if(!data) return;
+                    document.getElementById('colorPicker').value = data.settings.color || '#ff0000';
+                    document.getElementById('autoDelete').checked = data.settings.auto_delete;
+                    
+                    const list = document.getElementById('messagesList');
+                    list.innerHTML = '';
+                    if(data.messages) {
+                        data.messages.forEach(msg => {
+                            list.innerHTML += `
+                                <div class="msg-item">
+                                    <span>${msg.text}</span>
+                                    <button class="btn-danger" onclick="deleteMsg('${msg.id}')">Borrar</button>
+                                </div>`;
+                        });
+                    }
+                });
+        }
+
+        // Nuevo formato de envío para evitar bloqueos del servidor
+        function requestPost(action, paramsObj, callback) {
+            const params = new URLSearchParams();
+            for (let key in paramsObj) { params.append(key, paramsObj[key]); }
+            
+            fetch(`api.php?action=${action}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            }).then(() => { if(callback) callback(); else loadAdmin(); });
+        }
+
+        function deleteMsg(id) { requestPost('delete', {id: id}); }
+        function deleteAll() { if(confirm('¿Borrar todo?')) requestPost('delete_all', {}); }
+        
+        function saveSettings() {
+            const color = document.getElementById('colorPicker').value;
+            const autoDel = document.getElementById('autoDelete').checked;
+            requestPost('update_settings', {color: color, auto_delete: autoDel}, function() {
+                alert('¡Ajustes guardados correctamente!');
+                loadAdmin();
+            });
+        }
+
+        setInterval(loadAdmin, 5000);
+        loadAdmin();
+    </script>
+</body>
+</html>
